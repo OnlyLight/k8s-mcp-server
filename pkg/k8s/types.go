@@ -17,7 +17,7 @@ type PodInfo struct {
 type ServicePort struct {
 	Name       string `json:"name"`
 	Port       int32  `json:"port"`
-	TargetPort int32  `json:"targetPort"`
+	TargetPort string `json:"targetPort"`
 	Protocol   string `json:"protocol"`
 }
 
@@ -27,7 +27,7 @@ type ServiceInfo struct {
 	Namespace string            `json:"namespace"`
 	Type      string            `json:"type"`      // shows service exposure (ClusterIP, NodePort, LoadBalancer)
 	ClusterIP string            `json:"clusterIP"` // provides internal cluster address
-	Pods      []ServicePort     `json:"ports"`     // array defines all exposed endpoints
+	Ports     []ServicePort     `json:"ports"`     // array defines all exposed endpoints
 	Labels    map[string]string `json:"labels"`
 	CreatedAt time.Time         `json:"createdAt"`
 }

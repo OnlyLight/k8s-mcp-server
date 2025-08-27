@@ -37,22 +37,6 @@ func NewClient(configPath string, logger *logrus.Logger) (*Client, error) {
 	}, nil
 }
 
-func buildConfig(configPath string) (*rest.Config, error) {
-	// try in-cluster config first
-	if config, err := rest.InClusterConfig(); err == nil {
-		return config, nil
-	}
-
-	// Fallback to kubeconfig file
-	if configPath == "" {
-		if home := homedir.HomeDir(); home != "" {
-			configPath = filepath.Join(home, ".kube", "config")
-		}
-	}
-
-	return clientcmd.BuildConfigFromFlags("", configPath)
-}
-
 func (c *Client) HealthCheck(ctx context.Context) error {
 	_, err := c.clientset.Discovery().ServerVersion()
 	if err != nil {
@@ -83,6 +67,82 @@ func (c *Client) ListPods(ctx context.Context, namespace string) ([]PodInfo, err
 	}
 
 	return podInfos, nil
+}
+
+func (c *Client) ListServices(ctx context.Context, namespace string) ([]ServiceInfo, error) {
+	services, err := c.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list services in namespace %s: %w", namespace, err)
+	}
+
+	var serviceInfos []ServiceInfo
+	for _, svc := range services.Items {
+		var ports []ServicePort
+		for _, port := range svc.Spec.Ports {
+			ports = append(ports, ServicePort{
+				Name:       port.Name,
+				Port:       port.Port,
+				TargetPort: port.TargetPort.String(),
+				Protocol:   string(port.Protocol),
+			})
+		}
+
+		serviceInfos = append(serviceInfos, ServiceInfo{
+			Name:      svc.Name,
+			Namespace: svc.Namespace,
+			Type:      string(svc.Spec.Type),
+			ClusterIP: svc.Spec.ClusterIP,
+			Ports:     ports,
+			Labels:    svc.Labels,
+			CreatedAt: svc.CreationTimestamp.Time,
+		})
+	}
+
+	return serviceInfos, nil
+}
+
+func (c *Client) ListDeployments(ctx context.Context, namespace string) ([]DeploymentInfo, error) {
+	deployments, err := c.clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list deployments in namespace %s: %w", namespace, err)
+	}
+
+	var deploymentInfos []DeploymentInfo
+	for _, deploy := range deployments.Items {
+		strategy := "RollingUpdate"
+		if deploy.Spec.Strategy.Type == appsv1.RecreateDeploymentStrategyType {
+			strategy = "Recreate"
+		}
+
+		deploymentInfos = append(deploymentInfos, DeploymentInfo{
+			Name:            deploy.Name,
+			Namespace:       deploy.Namespace,
+			TotalReplicas:   *deploy.Spec.Replicas,
+			ReadyReplicas:   deploy.Status.ReadyReplicas,
+			UpdatedReplicas: deploy.Status.UpdatedReplicas,
+			Labels:          deploy.Labels,
+			CreatedAt:       deploy.CreationTimestamp.Time,
+			Strategy:        strategy,
+		})
+	}
+
+	return deploymentInfos, nil
+}
+
+func buildConfig(configPath string) (*rest.Config, error) {
+	// try in-cluster config first
+	if config, err := rest.InClusterConfig(); err == nil {
+		return config, nil
+	}
+
+	// Fallback to kubeconfig file
+	if configPath == "" {
+		if home := homedir.HomeDir(); home != "" {
+			configPath = filepath.Join(home, ".kube", "config")
+		}
+	}
+
+	return clientcmd.BuildConfigFromFlags("", configPath)
 }
 
 func getPodRestartCount(pod *corev1.Pod) int32 {

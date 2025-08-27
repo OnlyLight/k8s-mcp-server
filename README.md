@@ -56,3 +56,12 @@ go get gopkg.in/yaml.v3@v3.0.1
 **Data transformation:** Complex Kubernetes API objects → Simplified structs → JSON serializable data → AI-friendly format
 
 ### 2.2. Kubernetes Client Implementation
+```pkg/k8s/client.go```
+**What this code does:**
+- Implements the core Kubernetes client functionality with connection handling, health checking, and pod listing capabilities that transform complex Kubernetes API responses into our simplified data structures.
+
+- Implement service and deployment listing functionality with data transformation similar to pod listing, extracting networking and scaling information respectively.
+
+### 2.3. AI-Formatters
+```pkg/mcp/formatters.go```
+**What this code does:** Create formatters that transform raw Kubernetes JSON into AI-friendly markdown output.
