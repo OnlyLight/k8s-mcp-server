@@ -51,3 +51,12 @@ type NamespaceInfo struct {
 	Labels    map[string]string `json:"labels"`
 	CreatedAt time.Time         `json:"createdAt"`
 }
+
+// ConfigMapInfo represents essential configmap information
+type ConfigMapInfo struct {
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Data      map[string]string `json:"data"`
+	Labels    map[string]string `json:"labels"`
+	CreatedAt time.Time         `json:"createdAt"`
+}
